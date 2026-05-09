@@ -1,0 +1,61 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: pytest (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # CPU-only PyTorch (much smaller than GPU build) for testing
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          # Runtime deps that ComfyUI normally provides at runtime
+          pip install requests Pillow numpy
+          # Project + dev deps (responses, pytest-cov, etc.)
+          pip install -e ".[dev]"
+
+      - name: Run tests with coverage
+        run: pytest tests/ --cov=src --cov-report=term-missing --cov-report=xml --cov-fail-under=100
+
+      - name: Upload coverage artifact
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          retention-days: 14
+
+  pre-commit:
+    name: pre-commit (ruff lint + format)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      # Runs every hook in .pre-commit-config.yaml against all files.
+      # Currently pinned to ruff v0.4.9 (lint + format) — same versions
+      # contributors use locally via `pre-commit install`.
+      - uses: pre-commit/action@v3.0.1

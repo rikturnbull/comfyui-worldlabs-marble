@@ -1,0 +1,142 @@
+name: Check Marble API
+
+# Runs daily, downloads the WorldLabs OpenAPI spec, diffs against the stored
+# snapshot at openapi/worldlabs.json, and (on changes) creates a branch with
+# the updated snapshot plus an issue assigned to Copilot to update
+# src/marble_api/client.py.
+#
+# Setup notes:
+#   - SPEC_URL below points at the most likely OpenAPI JSON endpoint. If
+#     WorldLabs publishes the spec elsewhere, override via the repo variable
+#     MARBLE_SPEC_URL (Settings -> Secrets and variables -> Actions -> Variables).
+#   - The Copilot Coding Agent must be enabled for this repository for the
+#     `Copilot` assignee to pick up the issue. If your org uses a different
+#     identifier, override via the repo variable COPILOT_ASSIGNEE.
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # daily, 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+env:
+  SPEC_URL: ${{ vars.MARBLE_SPEC_URL || 'https://api.worldlabs.ai/openapi.json' }}
+  SNAPSHOT: openapi/worldlabs.json
+  COPILOT_ASSIGNEE: ${{ vars.COPILOT_ASSIGNEE || 'Copilot' }}
+
+jobs:
+  check-spec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download latest spec
+        run: |
+          set -euo pipefail
+          mkdir -p openapi
+          if ! curl -fsSL "$SPEC_URL" -o /tmp/spec.raw; then
+            echo "::error::Failed to download spec from $SPEC_URL"
+            exit 1
+          fi
+          if ! jq -S . /tmp/spec.raw > /tmp/spec.json; then
+            echo "::error::Spec is not valid JSON. First 200 chars of response:"
+            head -c 200 /tmp/spec.raw
+            exit 1
+          fi
+
+      - name: First-run seed (no snapshot yet)
+        if: hashFiles(env.SNAPSHOT) == ''
+        run: |
+          set -euo pipefail
+          cp /tmp/spec.json "$SNAPSHOT"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$SNAPSHOT"
+          git commit -m "chore: seed Marble OpenAPI spec snapshot [skip ci]"
+          git push
+          echo "::notice::Seeded initial spec snapshot. No issue created on first run."
+
+      - name: Diff against stored snapshot
+        id: check
+        if: hashFiles(env.SNAPSHOT) != ''
+        run: |
+          set -euo pipefail
+          if cmp -s /tmp/spec.json "$SNAPSHOT"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Marble API spec unchanged."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            diff -u "$SNAPSHOT" /tmp/spec.json > /tmp/spec.diff || true
+          fi
+
+      - name: Push update branch and open issue
+        if: steps.check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          DATE=$(date -u +%Y-%m-%d)
+          BRANCH="auto/marble-api-${DATE}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          cp /tmp/spec.json "$SNAPSHOT"
+          git add "$SNAPSHOT"
+          git commit -m "chore: update WorldLabs OpenAPI spec snapshot ($DATE)"
+          git push -u origin "$BRANCH"
+
+          # Truncate diff to keep the issue body manageable
+          DIFF_LIMIT=60000
+          if [ "$(wc -c < /tmp/spec.diff)" -gt $DIFF_LIMIT ]; then
+            head -c $DIFF_LIMIT /tmp/spec.diff > /tmp/spec.diff.short
+            printf '\n... (diff truncated; full diff in branch %s)\n' "$BRANCH" >> /tmp/spec.diff.short
+          else
+            cp /tmp/spec.diff /tmp/spec.diff.short
+          fi
+
+          # Idempotent label creation
+          gh label create "automated" --color "ededed" --description "Automated change" 2>/dev/null || true
+          gh label create "api-update" --color "0e8a16" --description "Marble API spec update" 2>/dev/null || true
+
+          # Compose issue body
+          {
+            printf '## WorldLabs OpenAPI spec changed (%s)\n\n' "$DATE"
+            printf 'The daily spec check detected differences against `%s`.\n\n' "$SNAPSHOT"
+            printf '- Source: %s\n' "$SPEC_URL"
+            printf '- Updated snapshot pushed to branch: `%s`\n\n' "$BRANCH"
+            printf '### Diff\n\n```diff\n'
+            cat /tmp/spec.diff.short
+            printf '\n```\n\n'
+            printf '### Task for @%s\n\n' "$COPILOT_ASSIGNEE"
+            printf '1. Check out the branch `%s`.\n' "$BRANCH"
+            printf '2. Review the diff above and the updated snapshot at `%s`.\n' "$SNAPSHOT"
+            printf '3. Update **only** `src/marble_api/client.py` to match the new spec:\n'
+            printf '   - Add, remove, or modify endpoint methods to match changed paths.\n'
+            printf '   - Update request/response field handling for changed shapes.\n'
+            printf '   - Update `MARBLE_MODELS` if the model enum changed.\n'
+            printf '   - Update `make_text_prompt` / `make_image_prompt` if the WorldPrompt union changed.\n'
+            printf '4. Update `tests/test_marble.py` if behaviour changed.\n'
+            printf '5. Do **not** modify unrelated files (node UI files, `common.py`, `fetch_*.py`, `save_spz.py`) unless an API change forces it.\n'
+            printf '6. Open a PR from `%s` against `main` titled `Update Marble API client for %s spec`.\n\n' "$BRANCH" "$DATE"
+            printf 'Keep the PR scoped to API changes only.\n'
+          } > /tmp/issue.md
+
+          # Create issue; if assigning Copilot fails (not enabled, wrong identifier),
+          # fall back to creating without an assignee so the issue is still visible.
+          if ! gh issue create \
+              --title "Marble API spec changed ($DATE)" \
+              --body-file /tmp/issue.md \
+              --assignee "$COPILOT_ASSIGNEE" \
+              --label "automated,api-update"; then
+            echo "::warning::Failed to assign issue to '$COPILOT_ASSIGNEE'. Creating without assignee."
+            gh issue create \
+              --title "Marble API spec changed ($DATE)" \
+              --body-file /tmp/issue.md \
+              --label "automated,api-update"
+          fi

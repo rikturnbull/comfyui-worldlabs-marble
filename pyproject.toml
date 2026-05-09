@@ -1,0 +1,115 @@
+[build-system]
+requires = ["setuptools>=70.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "comfyui-worldlabs-marble"
+version = "0.0.1"
+description = "A node for WorldLabs Marble"
+authors = [
+  {name = "ComfyUI-Marble", email = "rik@controlz.co.uk"}
+]
+readme = "README.md"
+license = {text = "MIT license"}
+requires-python = ">=3.10"
+classifiers = []
+dependencies = [
+
+]
+
+
+
+[project.optional-dependencies]
+dev = [
+    "bump-my-version",
+    "coverage",  # testing
+    "mypy",  # linting
+    "pre-commit", # runs linting on commit
+    "pytest",  # testing
+    "pytest-cov",  # coverage reporting
+    "responses",  # HTTP stubbing in tests
+    "ruff",  # linting
+]
+
+[project.urls]
+Repository = "https://github.com/rikturnbull/comfyui-worldlabs-marble"
+BugTracker = "https://github.com/rikturnbull/comfyui-worldlabs-marble/issues"
+Documentation = "https://github.com/rikturnbull/comfyui-worldlabs-marble/wiki"
+
+
+[tool.comfy]
+PublisherId = "rikturnbull"
+DisplayName = "ComfyUI Marble"
+Icon = ""
+Tags = []
+Repository = "https://github.com/rikturnbull/comfyui-worldlabs-marble"
+
+includes = []
+
+[tool.setuptools.package-data]
+"*" = ["*.*"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = [
+    "tests",
+]
+
+[tool.bumpversion]
+current_version = "0.0.1"
+commit = true
+tag = true
+tag_name = "v{new_version}"
+tag_message = "Release v{new_version}"
+message = "Release v{new_version}"
+allow_dirty = false
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "__init__.py"
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "CHANGELOG.md"
+search = "## [Unreleased]"
+replace = """## [Unreleased]
+
+## [{new_version}] - {now:%Y-%m-%d}"""
+
+[tool.mypy]
+files = "."
+
+# Use strict defaults
+strict = true
+warn_unreachable = true
+warn_no_return = true
+
+[[tool.mypy.overrides]]
+# Don't require test functions to include types
+module = "tests.*"
+allow_untyped_defs = true
+disable_error_code = "attr-defined"
+
+[tool.ruff]
+# extend-exclude = ["static", "ci/templates"]
+line-length = 140
+src = ["src", "tests"]
+target-version = "py39"
+
+# Add rules to ban exec/eval
+[tool.ruff.lint]
+select = [
+    "S102",  # exec-builtin
+    "S307",  # eval-used
+    "W293",
+    "F",  # The "F" series in Ruff stands for "Pyflakes" rules, which catch various Python syntax errors and undefined names.
+    # See all rules here: https://docs.astral.sh/ruff/rules/#pyflakes-f
+]
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "double"
