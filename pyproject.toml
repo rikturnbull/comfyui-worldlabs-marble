@@ -54,6 +54,11 @@ minversion = "8.0"
 testpaths = [
     "tests",
 ]
+# importlib import-mode avoids pytest's default sys.path manipulation, which
+# would otherwise try to treat the repo root as a package using the directory
+# name. That breaks on CI where the checkout dir is `comfyui-worldlabs-marble`
+# (hyphens — not a valid Python identifier).
+addopts = "--import-mode=importlib"
 
 [tool.bumpversion]
 current_version = "0.0.1"

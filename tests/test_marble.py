@@ -32,7 +32,7 @@ def test_every_input_has_a_tooltip():
         schema = cls.INPUT_TYPES()
         for category in ("required", "optional"):
             for field_name, spec in schema.get(category, {}).items():
-                assert isinstance(spec, tuple) and len(spec) >= 2 and isinstance(spec[1], dict), (
-                    f"{node_name}.{field_name} has no config dict — add one with a 'tooltip' key"
-                )
+                assert (
+                    isinstance(spec, tuple) and len(spec) >= 2 and isinstance(spec[1], dict)
+                ), f"{node_name}.{field_name} has no config dict — add one with a 'tooltip' key"
                 assert spec[1].get("tooltip"), f"{node_name}.{field_name} is missing a tooltip"
