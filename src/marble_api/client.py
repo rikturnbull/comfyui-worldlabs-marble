@@ -27,7 +27,7 @@ class MarbleAPIError(Exception):
 
 
 def is_debug() -> bool:
-    val = os.environ.get("WLT_DEBUG", "1").lower()
+    val = os.environ.get("WLT_DEBUG", "0").lower()
     return val in ("1", "true", "yes", "on")
 
 

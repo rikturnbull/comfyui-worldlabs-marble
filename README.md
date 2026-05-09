@@ -48,11 +48,13 @@ The other Marble nodes (`Fetch Image`, `Fetch Mesh`, `Save SPZ`) don't need a ke
 
 ## Debug logging
 
-HTTP request and response details are logged to the ComfyUI Console by default. The API key (in headers) is never logged, and base64 image data is redacted to a length stub. To silence the debug logs:
+HTTP request and response details can be logged to the ComfyUI Console for troubleshooting. Off by default. To enable:
 
 ```
-WLT_DEBUG=0
+WLT_DEBUG=1
 ```
+
+When enabled, the API key (in headers) is never logged, and base64 image data is redacted to a length stub.
 
 ## Example workflow
 

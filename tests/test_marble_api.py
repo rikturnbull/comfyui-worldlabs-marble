@@ -95,7 +95,7 @@ def test_is_debug_falsy(monkeypatch, val):
 
 def test_is_debug_default_when_unset(monkeypatch):
     monkeypatch.delenv("WLT_DEBUG", raising=False)
-    assert is_debug() is True
+    assert is_debug() is False
 
 
 # ---------------------------------------------------------------------------

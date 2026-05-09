@@ -23,7 +23,9 @@ permissions:
   issues: write
 
 env:
-  SPEC_URL: ${{ vars.MARBLE_SPEC_URL || 'https://api.worldlabs.ai/openapi.json' }}
+  # Upstream serves the spec as YAML. We parse it and store a canonical
+  # JSON snapshot (sorted keys, indented) so diffs are stable across runs.
+  SPEC_URL: ${{ vars.MARBLE_SPEC_URL || 'https://docs.worldlabs.ai/api/reference/openapi.yaml' }}
   SNAPSHOT: openapi/worldlabs.json
   COPILOT_ASSIGNEE: ${{ vars.COPILOT_ASSIGNEE || 'Copilot' }}
 
@@ -43,8 +45,22 @@ jobs:
             echo "::error::Failed to download spec from $SPEC_URL"
             exit 1
           fi
-          if ! jq -S . /tmp/spec.raw > /tmp/spec.json; then
-            echo "::error::Spec is not valid JSON. First 200 chars of response:"
+          python -m pip install --quiet PyYAML
+          # PyYAML parses both YAML and JSON (JSON is a strict subset). Emit
+          # canonical JSON (sorted keys, indented 2) so future diffs only flag
+          # real schema changes rather than upstream re-ordering or whitespace.
+          cat > /tmp/normalize.py <<'PY'
+          import json, sys, yaml
+          data = yaml.safe_load(open('/tmp/spec.raw'))
+          if data is None:
+              print('Spec is empty or invalid', file=sys.stderr)
+              sys.exit(1)
+          with open('/tmp/spec.json', 'w') as f:
+              json.dump(data, f, indent=2, sort_keys=True)
+              f.write('\n')
+          PY
+          if ! python /tmp/normalize.py; then
+            echo "::error::Could not parse spec as YAML/JSON. First 200 chars of response:"
             head -c 200 /tmp/spec.raw
             exit 1
           fi
