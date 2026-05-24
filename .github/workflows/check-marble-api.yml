@@ -97,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           DATE=$(date -u +%Y-%m-%d)
-          BRANCH="auto/marble-api-${DATE}"
+          BRANCH="auto/marble-api-${DATE}-${GITHUB_RUN_ID}"
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
