@@ -124,8 +124,8 @@ jobs:
           {
             printf '## WorldLabs OpenAPI spec changed (%s)\n\n' "$DATE"
             printf 'The daily spec check detected differences against `%s`.\n\n' "$SNAPSHOT"
-            printf '- Source: %s\n' "$SPEC_URL"
-            printf '- Updated snapshot pushed to branch: `%s`\n\n' "$BRANCH"
+            printf -- '- Source: %s\n' "$SPEC_URL"
+            printf -- '- Updated snapshot pushed to branch: `%s`\n\n' "$BRANCH"
             printf '### Diff\n\n```diff\n'
             cat /tmp/spec.diff.short
             printf '\n```\n\n'
@@ -133,10 +133,10 @@ jobs:
             printf '1. Check out the branch `%s`.\n' "$BRANCH"
             printf '2. Review the diff above and the updated snapshot at `%s`.\n' "$SNAPSHOT"
             printf '3. Update **only** `src/marble_api/client.py` to match the new spec:\n'
-            printf '   - Add, remove, or modify endpoint methods to match changed paths.\n'
-            printf '   - Update request/response field handling for changed shapes.\n'
-            printf '   - Update `MARBLE_MODELS` if the model enum changed.\n'
-            printf '   - Update `make_text_prompt` / `make_image_prompt` if the WorldPrompt union changed.\n'
+            printf -- '   - Add, remove, or modify endpoint methods to match changed paths.\n'
+            printf -- '   - Update request/response field handling for changed shapes.\n'
+            printf -- '   - Update `MARBLE_MODELS` if the model enum changed.\n'
+            printf -- '   - Update `make_text_prompt` / `make_image_prompt` if the WorldPrompt union changed.\n'
             printf '4. Update `tests/test_marble.py` if behaviour changed.\n'
             printf '5. Do **not** modify unrelated files (node UI files, `common.py`, `fetch_*.py`, `save_spz.py`) unless an API change forces it.\n'
             printf '6. Open a PR from `%s` against `main` titled `Update Marble API client for %s spec`.\n\n' "$BRANCH" "$DATE"
