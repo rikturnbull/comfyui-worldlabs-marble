@@ -16,6 +16,11 @@ from ..marble_api import (
 )
 from .common import _get_api_key, _tensor_to_png_b64
 
+try:
+    from comfy.model_management import throw_exception_if_processing_interrupted as _check_interrupt
+except ImportError:
+    _check_interrupt = None
+
 
 class MarbleGenerateWorld:
     """Generate a 3D world via the WorldLabs Marble API.
@@ -94,8 +99,8 @@ class MarbleGenerateWorld:
                     {
                         "default": 600,
                         "min": 30,
-                        "max": 3600,
-                        "tooltip": "Hard timeout for the polling loop. Generation typically takes 5-10 minutes; raise this if jobs queue.",
+                        "max": 7200,
+                        "tooltip": "Hard safety-net timeout for the polling loop. Generation typically takes 5-10 minutes; the ComfyUI cancel button interrupts within ~1s regardless of this value.",
                     },
                 ),
                 "poll_interval_seconds": (
@@ -158,6 +163,7 @@ class MarbleGenerateWorld:
             timeout=max_wait_seconds,
             poll_interval=poll_interval_seconds,
             on_progress=lambda p: print(f"[Marble] progress: {p.get('status', p) if isinstance(p, dict) else p}"),
+            check_interrupt=_check_interrupt,
         )
 
         if op.get("error"):

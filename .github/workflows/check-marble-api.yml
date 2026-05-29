@@ -12,6 +12,10 @@ name: Check Marble API
 #   - The Copilot Coding Agent must be enabled for this repository for the
 #     `Copilot` assignee to pick up the issue. If your org uses a different
 #     identifier, override via the repo variable COPILOT_ASSIGNEE.
+#   - Assigning Copilot requires a user token (PAT/OAuth). Add a PAT with
+#     `repo` scope as the secret COPILOT_ASSIGN_TOKEN. Without it the workflow
+#     falls back to GITHUB_TOKEN and the assignee is skipped (GitHub limitation:
+#     App installation tokens cannot assign agents via GraphQL).
 
 on:
   schedule:
@@ -93,7 +97,7 @@ jobs:
       - name: Push update branch and open issue
         if: steps.check.outputs.changed == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.COPILOT_ASSIGN_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           DATE=$(date -u +%Y-%m-%d)

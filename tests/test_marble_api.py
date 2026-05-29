@@ -432,3 +432,32 @@ def test_wait_for_operation_raises_on_timeout(monkeypatch):
     c = MarbleClient(api_key="k")
     with pytest.raises(TimeoutError):
         c.wait_for_operation("op1", timeout=1, poll_interval=0)
+
+
+@responses.activate
+def test_wait_for_operation_honors_check_interrupt(monkeypatch):
+    op_url = f"{MARBLE_BASE_URL}/marble/v1/operations/op1"
+    responses.get(op_url, json={"done": False})
+
+    monkeypatch.setattr("time.sleep", lambda _s: None)
+
+    class Cancelled(Exception):
+        pass
+
+    calls = {"n": 0}
+
+    def check_interrupt() -> None:
+        calls["n"] += 1
+        if calls["n"] >= 2:
+            raise Cancelled("user cancelled")
+
+    c = MarbleClient(api_key="k")
+    with pytest.raises(Cancelled):
+        c.wait_for_operation(
+            "op1",
+            timeout=600,
+            poll_interval=5,
+            check_interrupt=check_interrupt,
+        )
+    # Should have cancelled before exhausting the timeout — only one poll.
+    assert len(responses.calls) == 1
