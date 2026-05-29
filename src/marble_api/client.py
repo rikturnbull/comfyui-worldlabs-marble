@@ -192,11 +192,17 @@ class MarbleClient:
         timeout: int = 600,
         poll_interval: int = 5,
         on_progress: Callable[[Any], None] | None = None,
+        check_interrupt: Callable[[], None] | None = None,
     ) -> dict[str, Any]:
         """Poll get_operation until done=true, the deadline is hit, or error is set.
 
         Returns the final operation. Does NOT raise on operation-level errors —
         callers should inspect op['error']. Raises TimeoutError on deadline.
+
+        If check_interrupt is provided, it is called at least once per second
+        during the poll loop. Raise from it (e.g. ComfyUI's
+        InterruptProcessingException) to cancel the wait promptly without
+        waiting out the deadline.
         """
         deadline = time.monotonic() + timeout
         last_progress: Any = None
@@ -208,12 +214,24 @@ class MarbleClient:
                 on_progress(progress)
                 last_progress = progress
 
+        def interruptible_sleep(seconds: float) -> None:
+            end = time.monotonic() + seconds
+            while True:
+                if check_interrupt is not None:
+                    check_interrupt()
+                remaining = end - time.monotonic()
+                if remaining <= 0:
+                    return
+                time.sleep(min(1.0, remaining))
+
+        if check_interrupt is not None:
+            check_interrupt()
         op = self.get_operation(operation_id)
         emit_progress(op)
         while not op.get("done"):
             if time.monotonic() >= deadline:
                 raise TimeoutError(f"operation {operation_id} did not complete within {timeout}s")
-            time.sleep(poll_interval)
+            interruptible_sleep(poll_interval)
             op = self.get_operation(operation_id)
             emit_progress(op)
         return op
