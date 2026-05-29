@@ -461,3 +461,39 @@ def test_wait_for_operation_honors_check_interrupt(monkeypatch):
         )
     # Should have cancelled before exhausting the timeout — only one poll.
     assert len(responses.calls) == 1
+
+
+@responses.activate
+def test_wait_for_operation_check_interrupt_after_sleep(monkeypatch):
+    """The time.sleep() branch inside interruptible_sleep must be reachable.
+
+    check_interrupt is allowed to pass on the first inner call (letting
+    time.sleep execute), then raises on the second inner call.
+    """
+    op_url = f"{MARBLE_BASE_URL}/marble/v1/operations/op1"
+    responses.get(op_url, json={"done": False})
+
+    monkeypatch.setattr("time.sleep", lambda _s: None)
+
+    class Cancelled(Exception):
+        pass
+
+    # Call sequence:
+    #   1 – initial check_interrupt() before first poll  → pass
+    #   2 – first call inside interruptible_sleep loop   → pass (hits time.sleep)
+    #   3 – second call inside interruptible_sleep loop  → raise
+    calls = {"n": 0}
+
+    def check_interrupt() -> None:
+        calls["n"] += 1
+        if calls["n"] >= 3:
+            raise Cancelled("user cancelled")
+
+    c = MarbleClient(api_key="k")
+    with pytest.raises(Cancelled):
+        c.wait_for_operation(
+            "op1",
+            timeout=600,
+            poll_interval=5,
+            check_interrupt=check_interrupt,
+        )

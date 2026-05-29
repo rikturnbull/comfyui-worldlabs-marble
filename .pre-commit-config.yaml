@@ -8,3 +8,12 @@ repos:
         args: [ --fix ]
       # Run the formatter.
       - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: pytest-cov
+        name: pytest (with coverage)
+        entry: python -m pytest tests/ --cov=src --cov-report=term-missing --cov-fail-under=100 -q
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
