@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `test.yml` — pytest matrix on Python 3.10 / 3.11 / 3.12 with a 100% coverage gate, plus pre-commit (ruff lint + format).
   - `validate.yml` — Comfy Org `node-diff` backwards-compatibility check.
   - `publish_node.yml` — publishes to the Comfy Registry on tag push.
-  - `check-marble-api.yml` — daily diff of the WorldLabs OpenAPI spec; opens an issue assigned to Copilot if the spec changes, with a prepared branch carrying the snapshot update.
+  - `check-marble-api.yml` — daily diff of the WorldLabs OpenAPI spec; on a change it opens a PR that already updates the stored snapshot and asks Copilot to make any matching `client.py` changes on the same branch.
 
 ### Fixed
 
