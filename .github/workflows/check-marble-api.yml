@@ -12,17 +12,25 @@ name: Check Marble API
 # ourselves guarantees the snapshot update is always present; Copilot then
 # extends the same PR with any client changes (or confirms none are needed).
 #
+# How Copilot is triggered: assigning Copilot to a PR does NOT start a session
+# (that only works for issues), and an @copilot mention in the PR *body* does
+# not either. The agent starts work on an existing PR only from an @copilot
+# mention in a *comment* authored by a real user. So the workflow posts that
+# comment via the PAT (COPILOT_ASSIGN_TOKEN). The PR is still assigned to
+# Copilot for visibility, but the comment is what does the work.
+#
 # Setup notes:
 #   - SPEC_URL below points at the most likely OpenAPI JSON endpoint. If
 #     WorldLabs publishes the spec elsewhere, override via the repo variable
 #     MARBLE_SPEC_URL (Settings -> Secrets and variables -> Actions -> Variables).
-#   - The Copilot Coding Agent must be enabled for this repository for the
-#     `Copilot` assignee to pick up the issue. If your org uses a different
-#     identifier, override via the repo variable COPILOT_ASSIGNEE.
-#   - Assigning Copilot requires a user token (PAT/OAuth). Add a PAT with
+#   - The Copilot Coding Agent must be enabled for this repository. Override the
+#     assignee/mention identifiers via COPILOT_ASSIGNEE / COPILOT_MENTION if your
+#     org differs.
+#   - Triggering Copilot requires a user token (PAT/OAuth): the trigger comment
+#     and assignment must come from a real user, not GITHUB_TOKEN. Add a PAT with
 #     `repo` scope as the secret COPILOT_ASSIGN_TOKEN. Without it the workflow
-#     falls back to GITHUB_TOKEN and the assignee is skipped (GitHub limitation:
-#     App installation tokens cannot assign agents via GraphQL).
+#     falls back to GITHUB_TOKEN; the snapshot PR is still created and mergeable,
+#     but the bot-authored comment will not start a Copilot session.
 
 on:
   schedule:
@@ -142,33 +150,43 @@ jobs:
             printf -- '- Source: %s\n\n' "$SPEC_URL"
             printf '### Diff\n\n```diff\n'
             cat /tmp/spec.diff.short
-            printf '\n```\n\n'
-            printf '### %s — follow-up on this branch\n\n' "$COPILOT_MENTION"
-            printf 'The snapshot update is committed here already. Review the diff above and, **only if the API contract changed**, update `src/marble_api/client.py` on **this same branch/PR**:\n'
-            printf -- '- Add, remove, or modify endpoint methods to match changed paths.\n'
-            printf -- '- Update request/response field handling for changed shapes.\n'
-            printf -- '- Update `MARBLE_MODELS` if the model enum changed.\n'
-            printf -- '- Update `make_text_prompt` / `make_image_prompt` if the WorldPrompt union changed.\n'
-            printf -- '- Update `tests/test_marble.py` if behaviour changed.\n\n'
-            printf 'Do **not** modify unrelated files (node UI files, `common.py`, `fetch_*.py`, `save_spz.py`) unless an API change forces it. If the delta is purely cosmetic (e.g. numeric normalization or description text) and needs no client change, say so in a comment — the snapshot update alone is enough to merge.\n'
+            printf '\n```\n'
           } > /tmp/pr.md
 
           # Open the PR from the snapshot branch so the openapi.json update is
-          # always present. Assigning Copilot can fail (agent not enabled, wrong
-          # identifier, App-token limitation) — fall back to an unassigned PR so
-          # it is still visible and mergeable.
-          if ! gh pr create \
+          # always present, even if Copilot does nothing. Capture the URL so we
+          # can trigger Copilot on it. Fall back to an unassigned PR if assigning
+          # fails (agent not enabled / wrong identifier / token limitation).
+          if ! PR_URL=$(gh pr create \
               --base main \
               --head "$BRANCH" \
               --title "Update Marble API snapshot ($DATE)" \
               --body-file /tmp/pr.md \
               --assignee "$COPILOT_ASSIGNEE" \
-              --label "automated,api-update"; then
+              --label "automated,api-update"); then
             echo "::warning::Failed to assign PR to '$COPILOT_ASSIGNEE'. Creating without assignee."
-            gh pr create \
+            PR_URL=$(gh pr create \
               --base main \
               --head "$BRANCH" \
               --title "Update Marble API snapshot ($DATE)" \
               --body-file /tmp/pr.md \
-              --label "automated,api-update"
+              --label "automated,api-update")
           fi
+
+          # Trigger Copilot to work ON THIS PR. Assigning Copilot to a PR (above)
+          # does NOT start a coding-agent session, and an @copilot mention in the
+          # PR *body* doesn't either — only an @copilot mention in a *comment*
+          # (authored by a real user, i.e. the PAT) starts work on the existing
+          # branch. Without the PAT this comment is github-actions[bot] and will
+          # not trigger the agent; the snapshot PR is still valid and mergeable.
+          {
+            printf '%s please review the snapshot diff in this PR and, **only if the API contract changed**, update `src/marble_api/client.py` on **this same branch** (do not open a new PR):\n\n' "$COPILOT_MENTION"
+            printf -- '- Add, remove, or modify endpoint methods to match changed paths.\n'
+            printf -- '- Update request/response field handling for changed shapes.\n'
+            printf -- '- Update `MARBLE_MODELS` if the model enum changed.\n'
+            printf -- '- Update `make_text_prompt` / `make_image_prompt` if the WorldPrompt union changed.\n'
+            printf -- '- Update `tests/test_marble.py` if behaviour changed.\n\n'
+            printf 'Do **not** modify unrelated files (node UI files, `common.py`, `fetch_*.py`, `save_spz.py`) unless an API change forces it. If the delta is purely cosmetic (numeric normalization or description text) and needs no client change, just say so — the snapshot update alone is enough to merge.\n'
+          } > /tmp/copilot_comment.md
+
+          gh pr comment "$PR_URL" --body-file /tmp/copilot_comment.md
