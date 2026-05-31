@@ -592,8 +592,8 @@
           "page_size": {
             "default": 20,
             "description": "Number of results per page (1-100)",
-            "maximum": 100.0,
-            "minimum": 1.0,
+            "maximum": 100,
+            "minimum": 1,
             "title": "Page Size",
             "type": "integer"
           },
@@ -1123,7 +1123,7 @@
               "uri": "https://example.com/depth.png"
             },
             "text_prompt": "A futuristic space station",
-            "z_max": 100.0,
+            "z_max": 100,
             "z_min": 0.1
           }
         ],
@@ -1154,8 +1154,8 @@
           "seed": {
             "anyOf": [
               {
-                "maximum": 4294967295.0,
-                "minimum": 0.0,
+                "maximum": 4294967295,
+                "minimum": 0,
                 "type": "integer"
               },
               {
@@ -1173,7 +1173,7 @@
           "z_max": {
             "anyOf": [
               {
-                "exclusiveMinimum": 0.0,
+                "exclusiveMinimum": 0,
                 "type": "number"
               },
               {
@@ -1186,7 +1186,7 @@
           "z_min": {
             "anyOf": [
               {
-                "exclusiveMinimum": 0.0,
+                "exclusiveMinimum": 0,
                 "type": "number"
               },
               {
@@ -1829,7 +1829,7 @@
         "type": "object"
       },
       "WorldSemanticsMetadata": {
-        "description": "Semantic metadata for world generation output.",
+        "description": "Semantic metadata describing how to interpret the generated splat\nasset in real-world units. The exported asset is in arbitrary model\nunits; apply the transform below to convert to a metric, ground-aligned\nframe:\n\n    metric_xyz = raw_xyz * metric_scale_factor\n    aligned_xyz = metric_xyz - (0, ground_plane_offset, 0)\n",
         "properties": {
           "ground_plane_offset": {
             "anyOf": [
@@ -1840,6 +1840,7 @@
                 "type": "null"
               }
             ],
+            "description": "Vertical (Y-axis) offset, in meters, of the detected ground plane\nin the metric-scaled frame. Subtract from Y after applying\n`metric_scale_factor` to place the ground at y=0.\n",
             "title": "Ground Plane Offset"
           },
           "metric_scale_factor": {
@@ -1851,6 +1852,7 @@
                 "type": "null"
               }
             ],
+            "description": "Multiplicative factor that converts raw asset coordinates to\nmeters. Multiply all XYZ positions (and isotropic scales) by this\nvalue. A value of 1.0 means scale could not be inferred and the\nasset was left in model units.\n",
             "title": "Metric Scale Factor"
           }
         },
@@ -2037,8 +2039,8 @@
           "seed": {
             "anyOf": [
               {
-                "maximum": 4294967295.0,
-                "minimum": 0.0,
+                "maximum": 4294967295,
+                "minimum": 0,
                 "type": "integer"
               },
               {
