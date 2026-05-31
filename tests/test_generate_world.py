@@ -65,6 +65,11 @@ def test_text_only_generation_sends_text_prompt(mock_api_key):
         f"{MARBLE_BASE_URL}/marble/v1/operations/op1",
         json=_full_world_response(),
     )
+    # generate() re-fetches the completed world for fully-materialised assets.
+    responses.get(
+        f"{MARBLE_BASE_URL}/marble/v1/worlds/w1",
+        json=_full_world_response()["response"],
+    )
 
     node = MarbleGenerateWorld()
     result = node.generate(
@@ -104,6 +109,7 @@ def test_image_prompt_generation_sends_image_prompt(mock_api_key):
         f"{MARBLE_BASE_URL}/marble/v1/operations/op1",
         json=_full_world_response(),
     )
+    responses.get(f"{MARBLE_BASE_URL}/marble/v1/worlds/w1", json=_full_world_response()["response"])
 
     image = torch.zeros((1, 4, 4, 3), dtype=torch.float32)
     image[0, :, :, 0] = 1.0  # red
@@ -138,6 +144,7 @@ def test_image_prompt_omits_empty_text(mock_api_key):
         f"{MARBLE_BASE_URL}/marble/v1/operations/op1",
         json=_full_world_response(),
     )
+    responses.get(f"{MARBLE_BASE_URL}/marble/v1/worlds/w1", json=_full_world_response()["response"])
 
     image = torch.zeros((1, 4, 4, 3), dtype=torch.float32)
     MarbleGenerateWorld().generate(
@@ -174,6 +181,53 @@ def test_raises_when_operation_returns_error(mock_api_key):
 
 
 @responses.activate
+def test_refetches_world_when_operation_response_lacks_imagery(mock_api_key):
+    """The op can report done before pano_url is populated; get_world fills it in."""
+    responses.post(
+        f"{MARBLE_BASE_URL}/marble/v1/worlds:generate",
+        json={"operation_id": "op1", "done": False},
+    )
+    # Operation completes but its response has no imagery yet.
+    op_without_pano = _full_world_response()
+    op_without_pano["response"]["assets"].pop("imagery")
+    responses.get(f"{MARBLE_BASE_URL}/marble/v1/operations/op1", json=op_without_pano)
+    # The materialised world (get_world) does carry the pano.
+    responses.get(
+        f"{MARBLE_BASE_URL}/marble/v1/worlds/w1",
+        json=_full_world_response()["response"],
+    )
+
+    _, _, _, pano_url, *_ = MarbleGenerateWorld().generate(
+        prompt="x",
+        model="marble-1.0",
+        seed=0,
+        max_wait_seconds=10,
+        poll_interval_seconds=0,
+    )
+    assert pano_url == "https://cdn.example/pano.png"
+
+
+@responses.activate
+def test_refetch_failure_falls_back_to_operation_response(mock_api_key):
+    """If get_world fails, generate() still returns the operation-response assets."""
+    responses.post(
+        f"{MARBLE_BASE_URL}/marble/v1/worlds:generate",
+        json={"operation_id": "op1", "done": False},
+    )
+    responses.get(f"{MARBLE_BASE_URL}/marble/v1/operations/op1", json=_full_world_response())
+    responses.get(f"{MARBLE_BASE_URL}/marble/v1/worlds/w1", status=500, json={"error": "boom"})
+
+    _, _, _, pano_url, *_ = MarbleGenerateWorld().generate(
+        prompt="x",
+        model="marble-1.0",
+        seed=0,
+        max_wait_seconds=10,
+        poll_interval_seconds=0,
+    )
+    assert pano_url == "https://cdn.example/pano.png"  # from the op response fallback
+
+
+@responses.activate
 def test_handles_missing_assets_gracefully(mock_api_key):
     """Sparse response with no assets shouldn't crash; outputs default to empty."""
     responses.post(
@@ -184,6 +238,7 @@ def test_handles_missing_assets_gracefully(mock_api_key):
         f"{MARBLE_BASE_URL}/marble/v1/operations/op1",
         json={"operation_id": "op1", "done": True, "response": {"world_id": "w1"}},
     )
+    responses.get(f"{MARBLE_BASE_URL}/marble/v1/worlds/w1", json={"world_id": "w1"})
 
     result = MarbleGenerateWorld().generate(
         prompt="x",
@@ -222,6 +277,7 @@ def test_explicit_api_key_input_overrides_env(mock_api_key):
         f"{MARBLE_BASE_URL}/marble/v1/operations/op1",
         json=_full_world_response(),
     )
+    responses.get(f"{MARBLE_BASE_URL}/marble/v1/worlds/w1", json=_full_world_response()["response"])
 
     MarbleGenerateWorld().generate(
         prompt="x",
@@ -245,6 +301,7 @@ def test_empty_api_key_input_falls_back_to_env(mock_api_key):
         f"{MARBLE_BASE_URL}/marble/v1/operations/op1",
         json=_full_world_response(),
     )
+    responses.get(f"{MARBLE_BASE_URL}/marble/v1/worlds/w1", json=_full_world_response()["response"])
 
     MarbleGenerateWorld().generate(
         prompt="x",

@@ -31,7 +31,7 @@ env:
   # JSON snapshot (sorted keys, indented) so diffs are stable across runs.
   SPEC_URL: ${{ vars.MARBLE_SPEC_URL || 'https://docs.worldlabs.ai/api/reference/openapi.yaml' }}
   SNAPSHOT: openapi/worldlabs.json
-  COPILOT_ASSIGNEE: ${{ vars.COPILOT_ASSIGNEE || 'Copilot' }}
+  COPILOT_ASSIGNEE: ${{ vars.COPILOT_ASSIGNEE || 'copilot-swe-agent[bot]' }}
 
 jobs:
   check-spec:

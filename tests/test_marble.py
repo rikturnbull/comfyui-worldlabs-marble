@@ -6,6 +6,7 @@ from src.marble.nodes import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
 def test_expected_nodes_registered():
     assert set(NODE_CLASS_MAPPINGS.keys()) == {
         "MarbleGenerateWorld",
+        "MarbleListWorlds",
         "MarbleFetchImage",
         "MarbleFetchMesh",
         "MarbleSaveSPZ",

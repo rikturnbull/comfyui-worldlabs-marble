@@ -1,5 +1,7 @@
 # ComfyUI Marble
 
+> ⚠️ **Unreleased — work in progress.** This project is under active development, has not been released, and is subject to change. Nodes, inputs/outputs, and behaviour may change without notice.
+
 ComfyUI custom nodes for [WorldLabs Marble](https://docs.worldlabs.ai/) — a 3D world generation API. Generate panoramas, Gaussian splats, and collider meshes from text or image prompts and pipe the assets straight into your ComfyUI workflow.
 
 ![Example workflow](screenshot.png)
