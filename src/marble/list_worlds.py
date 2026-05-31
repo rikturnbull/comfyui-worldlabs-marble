@@ -33,12 +33,7 @@ def _world_name(world: dict[str, Any]) -> str:
     """
     world_id = world.get("world_id", "") or ""
     return (
-        world.get("display_name")
-        or world.get("name")
-        or world.get("title")
-        or world.get("prompt")
-        or world.get("text_prompt")
-        or world_id
+        world.get("display_name") or world.get("name") or world.get("title") or world.get("prompt") or world.get("text_prompt") or world_id
     )
 
 
@@ -129,9 +124,7 @@ class MarbleListWorlds:
 
     def load(self, api_key: str, world: str) -> tuple[str, str, str, str, str, str, str, int]:
         if not world or world == _WORLD_PLACEHOLDER:
-            raise RuntimeError(
-                "No world selected. Enter an API key (or set WORLDLABS_API_KEY), press 'Update', then pick a world."
-            )
+            raise RuntimeError("No world selected. Enter an API key (or set WORLDLABS_API_KEY), press 'Update', then pick a world.")
 
         client = MarbleClient(api_key=api_key or _get_api_key())
 
@@ -140,9 +133,7 @@ class MarbleListWorlds:
         items = worlds_to_items(client.list_worlds(page_size=100))
         match = next((i for i in items if i["name"] == world), None)
         if match is None:
-            raise RuntimeError(
-                f"World '{world}' was not found. Press 'Update' to refresh the list and pick again."
-            )
+            raise RuntimeError(f"World '{world}' was not found. Press 'Update' to refresh the list and pick again.")
 
         data = client.get_world(match["id"])
         # get_world returns the world object directly; tolerate a {"world": {...}} wrapper.
@@ -155,8 +146,16 @@ class MarbleListWorlds:
         return (*outputs, cost_credits)
 
 
+def list_worlds_items(api_key: str) -> list[dict[str, str]]:
+    """Fetch the caller's worlds as [{id, name}] for the /marble/list_worlds route."""
+    client = MarbleClient(api_key=api_key or _get_api_key())
+    return worlds_to_items(client.list_worlds(page_size=100))
+
+
 # --- ComfyUI server route (only registers inside a running ComfyUI) -----------
-try:
+# The handler is a thin wrapper around list_worlds_items() (tested above); this
+# registration block only runs under ComfyUI, so it is excluded from coverage.
+try:  # pragma: no cover
     from server import PromptServer  # type: ignore
     from aiohttp import web  # type: ignore
 
@@ -167,16 +166,11 @@ try:
         except Exception:
             body = {}
         api_key = (body or {}).get("api_key") or ""
-
-        def _fetch() -> list[dict[str, str]]:
-            client = MarbleClient(api_key=api_key or _get_api_key())
-            return worlds_to_items(client.list_worlds(page_size=100))
-
         try:
             # list_worlds() is blocking requests I/O; keep it off the event loop.
-            items = await asyncio.get_event_loop().run_in_executor(None, _fetch)
+            items = await asyncio.get_event_loop().run_in_executor(None, list_worlds_items, api_key)
             return web.json_response({"worlds": items})
-        except Exception as e:  # surface the message to the button's alert()
+        except Exception as e:  # surface the message to the button's toast
             return web.json_response({"error": str(e)}, status=400)
 
 except ImportError:

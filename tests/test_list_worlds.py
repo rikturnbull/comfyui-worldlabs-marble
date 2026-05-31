@@ -7,7 +7,7 @@ import json
 import pytest
 import responses
 
-from src.marble.list_worlds import MarbleListWorlds, worlds_to_items
+from src.marble.list_worlds import MarbleListWorlds, list_worlds_items, worlds_to_items
 from src.marble_api import MARBLE_BASE_URL
 
 
@@ -96,8 +96,8 @@ def test_load_handles_sparse_world(mock_api_key):
         json={"worlds": [{"world_id": "w1", "display_name": "My Mountain"}]},
     )
     responses.get(f"{MARBLE_BASE_URL}/marble/v1/worlds/w1", json={"world_id": "w1"})
-    world_id, splat_urls_json, mesh_url, pano_url, thumbnail_url, world_marble_url, semantics, credits = (
-        MarbleListWorlds().load(api_key="", world="My Mountain")
+    world_id, splat_urls_json, mesh_url, pano_url, thumbnail_url, world_marble_url, semantics, credits = MarbleListWorlds().load(
+        api_key="", world="My Mountain"
     )
     assert world_id == "w1"
     assert json.loads(splat_urls_json) == {}
@@ -147,6 +147,30 @@ def test_worlds_to_items_dedupes_names():
     assert len(set(names)) == 2
 
 
+def test_worlds_to_items_double_collision_guard():
+    # After the id-suffix a name can still clash with an existing entry; the
+    # fallback appends until unique.
+    resp = {
+        "worlds": [
+            {"world_id": "abcdef00", "display_name": "Mountain"},
+            {"world_id": "zzzzzz11", "display_name": "Mountain (abcdef)"},
+            {"world_id": "abcdef99", "display_name": "Mountain"},  # -> "Mountain (abcdef)" clashes
+        ]
+    }
+    names = [i["name"] for i in worlds_to_items(resp)]
+    assert names == ["Mountain", "Mountain (abcdef)", "Mountain (abcdef)·"]
+    assert len(set(names)) == 3
+
+
 def test_worlds_to_items_empty():
     assert worlds_to_items({}) == []
     assert worlds_to_items({"worlds": []}) == []
+
+
+@responses.activate
+def test_list_worlds_items_maps_response(mock_api_key):
+    responses.post(
+        f"{MARBLE_BASE_URL}/marble/v1/worlds:list",
+        json={"worlds": [{"world_id": "w1", "display_name": "Alps"}]},
+    )
+    assert list_worlds_items("") == [{"id": "w1", "name": "Alps"}]
