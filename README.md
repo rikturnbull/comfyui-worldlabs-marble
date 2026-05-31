@@ -11,11 +11,12 @@ ComfyUI custom nodes for [WorldLabs Marble](https://docs.worldlabs.ai/) — a 3D
 | Node | What it does |
 |---|---|
 | **Marble: Generate World** | Submits a text or image prompt, polls until ready, and returns asset URLs (pano, mesh, SPZ splats, thumbnail) plus generation metadata (cost, semantics). |
+| **Marble: List Worlds** | Loads one of your already-generated worlds instead of generating a new one. Press **Update** to fetch your worlds into the dropdown, pick one by name, and it outputs the same fields as **Generate World** — so it's a drop-in source for the Fetch/Save nodes with no generation cost. |
 | **Marble: Fetch Image** | Downloads a Marble image URL (pano or thumbnail) and outputs an `IMAGE`. Wires into Save Image, Preview Image, or any image-consuming node. |
 | **Marble: Fetch Mesh** | Downloads the collider mesh (GLB) to disk. Outputs both a path string and a `FILE_3D_GLB` value compatible with **Save 3D Model**, **Preview 3D**, and other 3D-aware nodes. |
 | **Marble: Save SPZ** | Downloads the Gaussian splat files (Niantic SPZ format). Save every LOD or pick one (`full_res` / `500k` / `150k` / `100k`). |
 
-All four live under the **Marble** category in the node menu.
+All five live under the **Marble** category in the node menu.
 
 ## Install
 
@@ -32,9 +33,9 @@ Then restart ComfyUI.
 
 ## API key
 
-Get a key from [WorldLabs](https://docs.worldlabs.ai/). `Marble: Generate World` resolves the key in this order:
+Get a key from [WorldLabs](https://docs.worldlabs.ai/). `Marble: Generate World` and `Marble: List Worlds` both resolve the key in this order:
 
-1. **The `api_key` input on the node itself** — masked widget on `Marble: Generate World`. Convenient for one-off use.
+1. **The `api_key` input on the node itself** — masked widget on `Marble: Generate World` and `Marble: List Worlds`. Convenient for one-off use.
    > ⚠️ The value is saved into the workflow JSON. The masking is display-only. Don't share, screenshot, or commit a workflow that has this filled in.
 2. **`WORLDLABS_API_KEY` environment variable.** Set in your shell or system before launching ComfyUI Desktop. On Windows:
    ```powershell
@@ -70,6 +71,8 @@ Marble: Generate World ──pano_url───────────> Fetch Im
 ```
 
 `MarbleGenerateWorld` outputs everything as URLs (and `splat_urls_json` for the SPZ map) so each downstream node only does work for the assets you actually wire up.
+
+`Marble: List Worlds` exposes the identical outputs, so you can swap it in wherever `Generate World` appears above to re-use an existing world instead of generating (and paying for) a new one.
 
 ## Development
 
