@@ -100,7 +100,7 @@ Workflows in [.github/workflows/](.github/workflows/):
 
 - **[test.yml](.github/workflows/test.yml)** — pytest matrix (Python 3.10 / 3.11 / 3.12), 100% coverage gate, pre-commit (ruff lint + format).
 - **[validate.yml](.github/workflows/validate.yml)** — Comfy Org's [node-diff](https://github.com/Comfy-Org/node-diff) for backwards-compat checks.
-- **[check-marble-api.yml](.github/workflows/check-marble-api.yml)** — daily diff of the WorldLabs OpenAPI spec. Opens an issue assigned to Copilot if the spec changes, with a prepared branch carrying the snapshot update.
+- **[check-marble-api.yml](.github/workflows/check-marble-api.yml)** — daily diff of the WorldLabs OpenAPI spec. On a change it opens a PR that already updates the stored snapshot and asks Copilot to make any matching `client.py` changes on the same branch (so the snapshot update lands even when no client change is needed).
 - **[publish_node.yml](.github/workflows/publish_node.yml)** — publishes to the [Comfy Registry](https://registry.comfy.org) on tag push (requires `REGISTRY_ACCESS_TOKEN` repo secret).
 
 ## Releasing
