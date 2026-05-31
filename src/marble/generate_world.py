@@ -13,6 +13,7 @@ from ..marble_api import (
     MarbleClient,
     make_image_prompt,
     make_text_prompt,
+    world_assets_to_strings,
 )
 from .common import _get_api_key, _tensor_to_png_b64
 
@@ -98,7 +99,7 @@ class MarbleGenerateWorld:
                     "INT",
                     {
                         "default": 600,
-                        "min": 30,
+                        "min": 600,
                         "max": 7200,
                         "tooltip": "Hard safety-net timeout for the polling loop. Generation typically takes 5-10 minutes; the ComfyUI cancel button interrupts within ~1s regardless of this value.",
                     },
@@ -106,8 +107,8 @@ class MarbleGenerateWorld:
                 "poll_interval_seconds": (
                     "INT",
                     {
-                        "default": 5,
-                        "min": 1,
+                        "default": 30,
+                        "min": 15,
                         "max": 60,
                         "tooltip": "How often to check operation status while generation is in progress.",
                     },
@@ -169,27 +170,26 @@ class MarbleGenerateWorld:
         if op.get("error"):
             raise RuntimeError(f"Marble generation failed: {op['error']}")
 
-        world = op.get("response") or {}
-        world_id = world.get("world_id", "")
-        assets = world.get("assets") or {}
-        pano_url = (assets.get("imagery") or {}).get("pano_url", "") or ""
-        mesh_url = (assets.get("mesh") or {}).get("collider_mesh_url", "") or ""
-        splats = assets.get("splats") or {}
-        spz_urls = splats.get("spz_urls") or {}
-        splat_urls_json = json.dumps(spz_urls)
-        semantics_metadata_json = json.dumps(splats.get("semantics_metadata") or {})
-        thumbnail_url = assets.get("thumbnail_url", "") or ""
-        world_marble_url = world.get("world_marble_url", "") or ""
+        op_world = op.get("response") or {}
+        world_id = op_world.get("world_id", "") or ""
+
+        # The operation can report done before all imagery (e.g. pano_url) is
+        # populated in its response. get_world() returns the fully-materialised
+        # world — the same source Marble: List Worlds reads — so re-fetch it to
+        # avoid emitting empty asset URLs. Fall back to the operation response if
+        # the fetch fails for any reason.
+        world = op_world
+        if world_id:
+            try:
+                full = client.get_world(world_id)
+                world = full.get("world") if isinstance(full.get("world"), dict) else full
+            except Exception as e:  # noqa: BLE001 - best-effort enrichment, never fatal
+                print(f"[Marble] get_world re-fetch failed, using operation response: {e}")
+                world = op_world
+
+        outputs = world_assets_to_strings(world)
         cost_credits = int((op.get("cost") or {}).get("total_credits", 0) or 0)
 
-        print(f"[Marble] done world_id={world_id}, spz keys={list(spz_urls.keys())}, credits={cost_credits}")
-        return (
-            world_id,
-            splat_urls_json,
-            mesh_url,
-            pano_url,
-            thumbnail_url,
-            world_marble_url,
-            semantics_metadata_json,
-            cost_credits,
-        )
+        splat_urls_json = outputs[1]
+        print(f"[Marble] done world_id={outputs[0]}, spz keys={list(json.loads(splat_urls_json).keys())}, credits={cost_credits}")
+        return (*outputs, cost_credits)

@@ -17,9 +17,14 @@ except ImportError:
     _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
     from src.marble.nodes import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS  # noqa: E402,F401
 
+# Frontend assets (e.g. the Marble: List Worlds "Update" button). ComfyUI serves
+# every .js under this directory and auto-loads it as an extension.
+WEB_DIRECTORY = "./web"
+
 __all__ = [
     "NODE_CLASS_MAPPINGS",
     "NODE_DISPLAY_NAME_MAPPINGS",
+    "WEB_DIRECTORY",
 ]
 
 __author__ = """ComfyUI-Marble"""

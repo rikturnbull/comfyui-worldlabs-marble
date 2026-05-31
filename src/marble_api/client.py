@@ -103,6 +103,33 @@ def make_image_prompt(
     return prompt
 
 
+def world_assets_to_strings(world: dict[str, Any]) -> tuple[str, str, str, str, str, str, str]:
+    """Extract the standard asset outputs from a Marble world object.
+
+    Accepts the `response` object of a generate operation or the body of a
+    GET /worlds/{id} response (both share the same shape). Returns the same
+    seven string fields, in the same order, that MarbleGenerateWorld emits
+    before its trailing cost_credits INT:
+
+        (world_id, splat_urls_json, mesh_url, pano_url, thumbnail_url,
+         world_marble_url, semantics_metadata_json)
+
+    Missing fields default to "" / "{}" so sparse responses don't crash.
+    """
+    world = world or {}
+    assets = world.get("assets") or {}
+    splats = assets.get("splats") or {}
+    return (
+        world.get("world_id", "") or "",
+        json.dumps(splats.get("spz_urls") or {}),
+        (assets.get("mesh") or {}).get("collider_mesh_url", "") or "",
+        (assets.get("imagery") or {}).get("pano_url", "") or "",
+        assets.get("thumbnail_url", "") or "",
+        world.get("world_marble_url", "") or "",
+        json.dumps(splats.get("semantics_metadata") or {}),
+    )
+
+
 class MarbleClient:
     """Thin wrapper over the Marble REST API.
 
