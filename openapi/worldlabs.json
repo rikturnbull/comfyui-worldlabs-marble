@@ -48,6 +48,22 @@
         "title": "Content",
         "type": "object"
       },
+      "CreditsResponse": {
+        "description": "Remaining credits for the authenticated API user.",
+        "properties": {
+          "remaining_credits": {
+            "description": "Remaining API credits available to the authenticated user.",
+            "minimum": 0.0,
+            "title": "Remaining Credits",
+            "type": "number"
+          }
+        },
+        "required": [
+          "remaining_credits"
+        ],
+        "title": "CreditsResponse",
+        "type": "object"
+      },
       "DataBase64Reference": {
         "description": "Reference to content via base64-encoded data.",
         "properties": {
@@ -592,8 +608,8 @@
           "page_size": {
             "default": 20,
             "description": "Number of results per page (1-100)",
-            "maximum": 100,
-            "minimum": 1,
+            "maximum": 100.0,
+            "minimum": 1.0,
             "title": "Page Size",
             "type": "integer"
           },
@@ -1123,7 +1139,7 @@
               "uri": "https://example.com/depth.png"
             },
             "text_prompt": "A futuristic space station",
-            "z_max": 100,
+            "z_max": 100.0,
             "z_min": 0.1
           }
         ],
@@ -1154,8 +1170,8 @@
           "seed": {
             "anyOf": [
               {
-                "maximum": 4294967295,
-                "minimum": 0,
+                "maximum": 4294967295.0,
+                "minimum": 0.0,
                 "type": "integer"
               },
               {
@@ -1173,7 +1189,7 @@
           "z_max": {
             "anyOf": [
               {
-                "exclusiveMinimum": 0,
+                "exclusiveMinimum": 0.0,
                 "type": "number"
               },
               {
@@ -1186,7 +1202,7 @@
           "z_min": {
             "anyOf": [
               {
-                "exclusiveMinimum": 0,
+                "exclusiveMinimum": 0.0,
                 "type": "number"
               },
               {
@@ -2039,8 +2055,8 @@
           "seed": {
             "anyOf": [
               {
-                "maximum": 4294967295,
-                "minimum": 0,
+                "maximum": 4294967295.0,
+                "minimum": 0.0,
                 "type": "integer"
               },
               {
@@ -2137,6 +2153,25 @@
           }
         },
         "summary": "Healthz"
+      }
+    },
+    "/marble/v1/credits": {
+      "get": {
+        "description": "Get remaining API credits for the authenticated user.\n\nReturns:\n    CreditsResponse with the current aggregate API credit balance.\n\nRaises:\n    HTTPException: 404 if the caller is not an API-enabled user\n    HTTPException: 503 if the billing backend is unavailable",
+        "operationId": "get_credits_marble_v1_credits_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreditsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Credits"
       }
     },
     "/marble/v1/media-assets/{media_asset_id}": {
@@ -2283,6 +2318,20 @@
             },
             "description": "Successful Response"
           },
+          "402": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Insufficient API credits to start this request. Add credits or enable auto-refill at https://platform.worldlabs.ai/billing."
+                },
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Insufficient Credits"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2399,6 +2448,20 @@
               }
             },
             "description": "Successful Response"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Insufficient API credits to start this request. Add credits or enable auto-refill at https://platform.worldlabs.ai/billing."
+                },
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Insufficient Credits"
           },
           "422": {
             "content": {
