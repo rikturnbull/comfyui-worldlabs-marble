@@ -188,6 +188,10 @@ class MarbleClient:
         """GET /healthz"""
         return self._request("GET", "/healthz")
 
+    def get_credits(self) -> dict[str, Any]:
+        """GET /marble/v1/credits"""
+        return self._request("GET", "/marble/v1/credits")
+
     def generate_world(
         self,
         world_prompt: dict[str, Any],
