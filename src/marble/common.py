@@ -69,6 +69,11 @@ def _tensor_to_png_b64(image: torch.Tensor) -> str:
     return base64.b64encode(buf.getvalue()).decode("ascii")
 
 
+def _tensor_batch_to_png_b64(image: torch.Tensor) -> list[str]:
+    """Encode every image in a ComfyUI IMAGE batch (B, H, W, C) to PNG base64."""
+    return [_tensor_to_png_b64(image[i : i + 1]) for i in range(image.shape[0])]
+
+
 def _url_to_tensor(url: str) -> torch.Tensor:
     log_request("GET", url)
     r = requests.get(url, timeout=60)

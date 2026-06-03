@@ -12,10 +12,36 @@ from ..marble_api import (
     MARBLE_MODELS,
     MarbleClient,
     make_image_prompt,
+    make_multi_image_prompt,
     make_text_prompt,
     world_assets_to_strings,
 )
-from .common import _get_api_key, _tensor_to_png_b64
+from .common import _get_api_key, _tensor_batch_to_png_b64, _tensor_to_png_b64
+
+
+def _parse_azimuths(raw: str, count: int) -> list[float | None] | None:
+    """Parse the comma-separated azimuths widget into a per-image list.
+
+    Blank → None (let Marble place the images). An empty slot (e.g. "0,,90")
+    leaves that image unplaced. Raises on non-numeric values or more azimuths
+    than images.
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    result: list[float | None] = []
+    for part in (p.strip() for p in raw.split(",")):
+        if part == "":
+            result.append(None)
+            continue
+        try:
+            result.append(float(part))
+        except ValueError as e:
+            raise RuntimeError(f"Invalid azimuth value {part!r} in azimuths={raw!r}. Use comma-separated degrees, e.g. '0,180'.") from e
+    if len(result) > count:
+        raise RuntimeError(f"Got {len(result)} azimuths for {count} image(s); provide at most one per image.")
+    return result
+
 
 try:
     from comfy.model_management import throw_exception_if_processing_interrupted as _check_interrupt
@@ -118,14 +144,28 @@ class MarbleGenerateWorld:
                 "image": (
                     "IMAGE",
                     {
-                        "tooltip": "Optional reference image. Switches the request from text-only to image-conditioned generation.",
+                        "tooltip": "Optional reference image(s). One image → image-conditioned generation; a batch of 2+ (e.g. via Batch Images) → multi-image generation (up to 4, or 8 with reconstruct_images).",
                     },
                 ),
                 "is_pano": (
                     "BOOLEAN",
                     {
                         "default": False,
-                        "tooltip": "Set if the input image is a 360° equirectangular panorama. Ignored when no image is provided.",
+                        "tooltip": "Set if the input image is a 360° equirectangular panorama. Single-image only; ignored with no image or a multi-image batch.",
+                    },
+                ),
+                "azimuths": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "tooltip": "Multi-image only: comma-separated sphere positions in degrees, aligned to the batched image order (e.g. '0,180'). Blank lets Marble place them. Ignored for a single image.",
+                    },
+                ),
+                "reconstruct_images": (
+                    "BOOLEAN",
+                    {
+                        "default": False,
+                        "tooltip": "Multi-image only: reconstruction mode — reconstructs the scene from the photos and allows up to 8 images instead of 4. Ignored for a single image.",
                     },
                 ),
             },
@@ -140,11 +180,15 @@ class MarbleGenerateWorld:
         poll_interval_seconds: int,
         image: torch.Tensor | None = None,
         is_pano: bool = False,
+        azimuths: str = "",
+        reconstruct_images: bool = False,
         api_key: str = "",
     ) -> tuple[str, str, str, str, str, str, str, int]:
         client = MarbleClient(api_key=api_key or _get_api_key())
 
-        if image is not None:
+        if image is None:
+            world_prompt = make_text_prompt(prompt)
+        elif image.shape[0] == 1:
             world_prompt = make_image_prompt(
                 _tensor_to_png_b64(image),
                 extension="png",
@@ -152,7 +196,17 @@ class MarbleGenerateWorld:
                 is_pano=is_pano,
             )
         else:
-            world_prompt = make_text_prompt(prompt)
+            count = image.shape[0]
+            max_images = 8 if reconstruct_images else 4
+            if count > max_images:
+                hint = "" if reconstruct_images else " (enable reconstruct_images for up to 8)"
+                raise RuntimeError(f"Marble multi-image supports up to {max_images} images{hint}; got {count}.")
+            world_prompt = make_multi_image_prompt(
+                [(b64, "png") for b64 in _tensor_batch_to_png_b64(image)],
+                azimuths=_parse_azimuths(azimuths, count),
+                text=prompt or None,
+                reconstruct_images=reconstruct_images,
+            )
 
         print(f"[Marble] starting generation (model={model}, seed={seed})")
         op = client.generate_world(world_prompt=world_prompt, model=model, seed=seed)
