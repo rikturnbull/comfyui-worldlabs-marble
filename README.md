@@ -14,9 +14,11 @@ ComfyUI custom nodes for [WorldLabs Marble](https://docs.worldlabs.ai/) — a 3D
 | **Marble: List Worlds** | Loads one of your already-generated worlds instead of generating a new one. Press **Update** to fetch your worlds into the dropdown, pick one by name, and it outputs the same fields as **Generate World** — so it's a drop-in source for the Fetch/Save nodes with no generation cost. |
 | **Marble: Fetch Image** | Downloads a Marble image URL (pano or thumbnail) and outputs an `IMAGE`. Wires into Save Image, Preview Image, or any image-consuming node. |
 | **Marble: Fetch Mesh** | Downloads the collider mesh (GLB) to disk. Outputs both a path string and a `FILE_3D_GLB` value compatible with **Save 3D Model**, **Preview 3D**, and other 3D-aware nodes. |
-| **Marble: Save SPZ** | Downloads the Gaussian splat files (Niantic SPZ format). Save every LOD or pick one (`full_res` / `500k` / `150k` / `100k`). |
+| **Marble: Fetch SPZ** | Downloads one Gaussian splat LOD (`full_res` / `500k` / `150k` / `100k`) into an in-memory `SPZ` value. Wire it into **Save SPZ** and/or **Convert SPZ to PLY** — nothing hits disk until one of those runs. |
+| **Marble: Save SPZ** | Writes an `SPZ` value (from **Fetch SPZ**) to disk as a `.spz` file. |
+| **Marble: Convert SPZ to PLY** | Converts an `SPZ` value (from **Fetch SPZ**) to a standard `.ply` (INRIA 3DGS layout) for use in other viewers and tools. Pure-Python decode — no extra dependencies. The `.ply` is roughly 10× larger than the `.spz`. |
 
-All five live under the **Marble** category in the node menu.
+All seven live under the **Marble** category in the node menu.
 
 ## Install
 
@@ -47,7 +49,7 @@ Get a key from [WorldLabs](https://docs.worldlabs.ai/). `Marble: Generate World`
    ```
    This file is already in `.gitignore` — don't commit it.
 
-The other Marble nodes (`Fetch Image`, `Fetch Mesh`, `Save SPZ`) don't need a key — they download from the CDN URLs that `Generate World` returns, which aren't authenticated.
+The other Marble nodes (`Fetch Image`, `Fetch Mesh`, `Fetch SPZ`) don't need a key — they download from the CDN URLs that `Generate World` returns, which aren't authenticated. `Save SPZ` and `Convert SPZ to PLY` work entirely on the in-memory `SPZ` value, so they don't make network calls at all.
 
 ## Debug logging
 
@@ -67,12 +69,24 @@ Marble: Generate World ──pano_url───────────> Fetch Im
                        ──mesh_url
                          + world_id──────────> Fetch Mesh ──glb───> Save 3D Model
                        ──splat_urls_json
-                         + world_id──────────> Save SPZ
+                         + world_id──────────> Fetch SPZ ──SPZ──┬──> Save SPZ
+                                                                └──> Convert SPZ to PLY
 ```
 
 `MarbleGenerateWorld` outputs everything as URLs (and `splat_urls_json` for the SPZ map) so each downstream node only does work for the assets you actually wire up.
 
 `Marble: List Worlds` exposes the identical outputs, so you can swap it in wherever `Generate World` appears above to re-use an existing world instead of generating (and paying for) a new one.
+
+## Viewing the converted PLY
+
+The `.ply` from **Convert SPZ to PLY** is a standard 3D Gaussian Splatting file (INRIA `binary_little_endian` layout). It opens in any splat viewer, e.g. [SuperSplat](https://supersplat.playcanvas.com/) or [antimatter15/splat](https://antimatter15.com/splat/), both of which auto-frame the camera.
+
+**Using ComfyUI-3D-Pack's "Preview 3DGS" node and getting a blank canvas** (with `RenderData`/`runSort … reading 'set' of undefined` in the browser console)? That's a 3D-Pack bug, not the PLY — `full_res` and the smaller LODs all work once it's fixed. Its viewer pins gsplat.js to `@latest`, and releases 1.2.5+ (July 2025) regressed. Pin a known-good version in `ComfyUI-3D-Pack/web/html/gsVisualizer.html`:
+  ```diff
+  - "gsplat": "https://cdn.jsdelivr.net/npm/gsplat@latest/dist/index.js"
+  + "gsplat": "https://cdn.jsdelivr.net/npm/gsplat@1.2.4/dist/index.js"
+  ```
+  Then hard-reload ComfyUI with the browser cache disabled (DevTools → Network → "Disable cache" → Ctrl+R) so the iframe re-fetches the HTML. A 3D-Pack update may revert this; re-apply if needed.
 
 ## Development
 

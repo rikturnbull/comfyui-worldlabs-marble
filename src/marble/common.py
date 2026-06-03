@@ -11,6 +11,7 @@ import base64
 import io
 import json
 import os
+from dataclasses import dataclass
 
 import numpy as np
 import requests
@@ -25,6 +26,22 @@ except ImportError:
     folder_paths = None
 
 MARBLE_SPZ_KEYS = ["all", "full_res", "500k", "150k", "100k"]
+# Single-LOD choices for Fetch SPZ (no "all" — it emits exactly one splat).
+MARBLE_SPZ_LOD_KEYS = ["full_res", "500k", "150k", "100k"]
+
+
+@dataclass
+class SpzData:
+    """One downloaded SPZ splat, passed between Marble nodes on the SPZ socket.
+
+    Carries the raw .spz bytes plus the LOD `key` and `world_id` so downstream
+    Save / Convert nodes can build sensible per-world output paths without
+    needing those wired in again.
+    """
+
+    data: bytes
+    key: str = "full_res"
+    world_id: str = "unknown"
 
 
 def _package_root() -> str:

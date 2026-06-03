@@ -35,10 +35,11 @@ def no_api_key(monkeypatch):
 @pytest.fixture
 def tmp_output(tmp_path, monkeypatch):
     """Patch _output_directory across the marble package to use tmp_path."""
-    from src.marble import common, fetch_mesh, save_spz
+    from src.marble import common, convert_spz, fetch_mesh, save_spz
 
     fake = lambda: str(tmp_path)  # noqa: E731 - tiny lambda is fine here
     monkeypatch.setattr(common, "_output_directory", fake)
     monkeypatch.setattr(fetch_mesh, "_output_directory", fake)
     monkeypatch.setattr(save_spz, "_output_directory", fake)
+    monkeypatch.setattr(convert_spz, "_output_directory", fake)
     return tmp_path
