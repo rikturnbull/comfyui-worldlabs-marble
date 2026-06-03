@@ -9,7 +9,9 @@ def test_expected_nodes_registered():
         "MarbleListWorlds",
         "MarbleFetchImage",
         "MarbleFetchMesh",
+        "MarbleFetchSPZ",
         "MarbleSaveSPZ",
+        "MarbleConvertSPZ",
     }
 
 

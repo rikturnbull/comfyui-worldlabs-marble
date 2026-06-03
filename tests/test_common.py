@@ -189,3 +189,15 @@ def test_marble_spz_keys_includes_known_lods():
     assert "all" in common.MARBLE_SPZ_KEYS
     assert "full_res" in common.MARBLE_SPZ_KEYS
     assert "500k" in common.MARBLE_SPZ_KEYS
+
+
+def test_marble_spz_lod_keys_excludes_all():
+    assert "all" not in common.MARBLE_SPZ_LOD_KEYS
+    assert common.MARBLE_SPZ_LOD_KEYS == ["full_res", "500k", "150k", "100k"]
+
+
+def test_spz_data_defaults():
+    spz = common.SpzData(data=b"abc")
+    assert spz.data == b"abc"
+    assert spz.key == "full_res"
+    assert spz.world_id == "unknown"

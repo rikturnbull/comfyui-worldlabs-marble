@@ -17,6 +17,7 @@ from src.marble_api import (
     log_response_binary,
     log_response_json,
     make_image_prompt,
+    make_multi_image_prompt,
     make_text_prompt,
 )
 from src.marble_api.client import _sanitize_body
@@ -59,6 +60,32 @@ def test_make_image_prompt_omits_empty_text():
     body = make_image_prompt("DATA", text="")
     assert "text_prompt" not in body
     body = make_image_prompt("DATA", text=None)
+    assert "text_prompt" not in body
+
+
+def test_make_multi_image_prompt_basic():
+    body = make_multi_image_prompt([("aaa", "png"), ("bbb", "jpg")], text="two views")
+    assert body["type"] == "multi-image"
+    assert len(body["multi_image_prompt"]) == 2
+    assert body["multi_image_prompt"][0]["content"] == {
+        "source": "data_base64",
+        "data_base64": "aaa",
+        "extension": "png",
+    }
+    assert "azimuth" not in body["multi_image_prompt"][0]
+    assert body["text_prompt"] == "two views"
+    assert "reconstruct_images" not in body  # omitted when False
+
+
+def test_make_multi_image_prompt_azimuths_and_reconstruct():
+    body = make_multi_image_prompt(
+        [("a", "png"), ("b", "png")],
+        azimuths=[0.0, None],  # second image left unplaced
+        reconstruct_images=True,
+    )
+    assert body["multi_image_prompt"][0]["azimuth"] == 0.0
+    assert "azimuth" not in body["multi_image_prompt"][1]
+    assert body["reconstruct_images"] is True
     assert "text_prompt" not in body
 
 

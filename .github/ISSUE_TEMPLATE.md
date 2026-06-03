@@ -1,15 +1,12 @@
-* marble version:
+* ComfyUI Worldabs Marble version:
+* ComfyUI version:
 * Python version:
 * Operating System:
 
 ### Description
 
-Describe what you were trying to get done.
-Tell us what happened, what went wrong, and what you expected to happen.
+Describe the node layout and what you were trying to get done. Tell us what happened, what went wrong, and what you expected to happen. 
 
-### What I Did
+### Assets
 
-```
-Paste the command(s) you ran and the output.
-If there was a crash, please include the traceback here.
-```
+Provide links to input assets to reproduce the issue.

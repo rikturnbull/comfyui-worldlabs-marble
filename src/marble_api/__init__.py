@@ -10,6 +10,7 @@ from .client import (
     log_response_binary,
     log_response_json,
     make_image_prompt,
+    make_multi_image_prompt,
     make_text_prompt,
     world_assets_to_strings,
 )
@@ -24,6 +25,7 @@ __all__ = [
     "log_response_binary",
     "log_response_json",
     "make_image_prompt",
+    "make_multi_image_prompt",
     "make_text_prompt",
     "world_assets_to_strings",
 ]

@@ -103,6 +103,39 @@ def make_image_prompt(
     return prompt
 
 
+def make_multi_image_prompt(
+    images: list[tuple[str, str]],
+    azimuths: list[float | None] | None = None,
+    text: str | None = None,
+    reconstruct_images: bool = False,
+) -> dict[str, Any]:
+    """Build a multi-image WorldPrompt body from base64-encoded images.
+
+    `images` is a list of ``(data_base64, extension)`` pairs. `azimuths`, if
+    given, is a parallel list of sphere positions in degrees (use ``None`` to
+    leave an image unplaced). Set `reconstruct_images` for reconstruction mode,
+    which allows up to 8 images instead of 4.
+    """
+    items: list[dict[str, Any]] = []
+    for i, (data_base64, extension) in enumerate(images):
+        entry: dict[str, Any] = {
+            "content": {
+                "source": "data_base64",
+                "data_base64": data_base64,
+                "extension": extension,
+            }
+        }
+        if azimuths is not None and i < len(azimuths) and azimuths[i] is not None:
+            entry["azimuth"] = azimuths[i]
+        items.append(entry)
+    prompt: dict[str, Any] = {"type": "multi-image", "multi_image_prompt": items}
+    if text:
+        prompt["text_prompt"] = text
+    if reconstruct_images:
+        prompt["reconstruct_images"] = True
+    return prompt
+
+
 def world_assets_to_strings(world: dict[str, Any]) -> tuple[str, str, str, str, str, str, str]:
     """Extract the standard asset outputs from a Marble world object.
 
