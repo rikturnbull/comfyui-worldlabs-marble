@@ -247,6 +247,12 @@ def test_health_check():
 
 
 @responses.activate
+def test_get_credits():
+    responses.get(f"{MARBLE_BASE_URL}/marble/v1/credits", json={"remaining_credits": 12.5})
+    assert MarbleClient(api_key="k").get_credits() == {"remaining_credits": 12.5}
+
+
+@responses.activate
 def test_generate_world_minimal_body():
     responses.post(
         f"{MARBLE_BASE_URL}/marble/v1/worlds:generate",
