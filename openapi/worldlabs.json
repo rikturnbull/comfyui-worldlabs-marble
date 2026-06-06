@@ -53,7 +53,7 @@
         "properties": {
           "remaining_credits": {
             "description": "Remaining API credits available to the authenticated user.",
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Remaining Credits",
             "type": "number"
           }
@@ -608,8 +608,8 @@
           "page_size": {
             "default": 20,
             "description": "Number of results per page (1-100)",
-            "maximum": 100.0,
-            "minimum": 1.0,
+            "maximum": 100,
+            "minimum": 1,
             "title": "Page Size",
             "type": "integer"
           },
@@ -1139,7 +1139,7 @@
               "uri": "https://example.com/depth.png"
             },
             "text_prompt": "A futuristic space station",
-            "z_max": 100.0,
+            "z_max": 100,
             "z_min": 0.1
           }
         ],
@@ -1170,8 +1170,8 @@
           "seed": {
             "anyOf": [
               {
-                "maximum": 4294967295.0,
-                "minimum": 0.0,
+                "maximum": 4294967295,
+                "minimum": 0,
                 "type": "integer"
               },
               {
@@ -1189,7 +1189,7 @@
           "z_max": {
             "anyOf": [
               {
-                "exclusiveMinimum": 0.0,
+                "exclusiveMinimum": 0,
                 "type": "number"
               },
               {
@@ -1202,7 +1202,7 @@
           "z_min": {
             "anyOf": [
               {
-                "exclusiveMinimum": 0.0,
+                "exclusiveMinimum": 0,
                 "type": "number"
               },
               {
@@ -2055,8 +2055,8 @@
           "seed": {
             "anyOf": [
               {
-                "maximum": 4294967295.0,
-                "minimum": 0.0,
+                "maximum": 4294967295,
+                "minimum": 0,
                 "type": "integer"
               },
               {
