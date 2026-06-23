@@ -45,7 +45,7 @@ def test_make_image_prompt_minimal():
         "data_base64": "BASE64",
         "extension": "png",
     }
-    assert body["is_pano"] is False
+    assert body["is_pano"] == "auto"
     assert "text_prompt" not in body
 
 
@@ -54,6 +54,11 @@ def test_make_image_prompt_with_text_and_pano():
     assert body["text_prompt"] == "caption"
     assert body["is_pano"] is True
     assert body["image_prompt"]["extension"] == "jpg"
+
+
+def test_make_image_prompt_allows_auto_pano_detection():
+    body = make_image_prompt("DATA", is_pano="auto")
+    assert body["is_pano"] == "auto"
 
 
 def test_make_image_prompt_omits_empty_text():
@@ -268,12 +273,6 @@ def test_client_debug_explicit_overrides_env(monkeypatch):
 
 
 @responses.activate
-def test_health_check():
-    responses.get(f"{MARBLE_BASE_URL}/healthz", json={"status": "ok"})
-    assert MarbleClient(api_key="k").health_check() == {"status": "ok"}
-
-
-@responses.activate
 def test_get_credits():
     responses.get(f"{MARBLE_BASE_URL}/marble/v1/credits", json={"remaining_credits": 12.5})
     assert MarbleClient(api_key="k").get_credits() == {"remaining_credits": 12.5}
@@ -291,7 +290,7 @@ def test_generate_world_minimal_body():
     sent = json.loads(responses.calls[0].request.body)
     assert sent == {
         "world_prompt": {"type": "text", "text_prompt": "hi"},
-        "model": "marble-1.0",
+        "model": "marble-1.1",
     }
     assert responses.calls[0].request.headers["WLT-Api-Key"] == "k"
 
@@ -403,12 +402,12 @@ def test_request_raises_on_4xx_with_json_detail():
 @responses.activate
 def test_request_raises_on_5xx_with_text_body():
     responses.get(
-        f"{MARBLE_BASE_URL}/healthz",
+        f"{MARBLE_BASE_URL}/marble/v1/credits",
         body="server fell over",
         status=500,
     )
     with pytest.raises(MarbleAPIError) as exc_info:
-        MarbleClient(api_key="k").health_check()
+        MarbleClient(api_key="k").get_credits()
     assert exc_info.value.status_code == 500
     assert exc_info.value.body == "server fell over"
 
