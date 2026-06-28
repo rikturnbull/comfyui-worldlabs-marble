@@ -108,7 +108,7 @@ class MarbleGenerateWorld:
                 "model": (
                     MARBLE_MODELS,
                     {
-                        "default": "marble-1.0",
+                        "default": "marble-1.1",
                         "tooltip": "Marble model variant. '-draft' is fastest and cheapest; '-plus' adds dynamic world sizing.",
                     },
                 ),
@@ -148,10 +148,10 @@ class MarbleGenerateWorld:
                     },
                 ),
                 "is_pano": (
-                    "BOOLEAN",
+                    ["auto", "true", "false"],
                     {
-                        "default": False,
-                        "tooltip": "Set if the input image is a 360° equirectangular panorama. Single-image only; ignored with no image or a multi-image batch.",
+                        "default": "auto",
+                        "tooltip": "How to treat the input image as a panorama. 'auto' detects valid equirectangular panoramas, 'true' always uses the image as a panorama, 'false' treats it as a standard image. Single-image only; ignored with no image or a multi-image batch.",
                     },
                 ),
                 "azimuths": (
@@ -179,12 +179,22 @@ class MarbleGenerateWorld:
         max_wait_seconds: int,
         poll_interval_seconds: int,
         image: torch.Tensor | None = None,
-        is_pano: bool = False,
+        is_pano: str = "auto",
         azimuths: str = "",
         reconstruct_images: bool = False,
         api_key: str = "",
     ) -> tuple[str, str, str, str, str, str, str, int]:
         client = MarbleClient(api_key=api_key or _get_api_key())
+
+        # Convert the combo string to the PanoDetectionMode the API expects:
+        # "auto" → "auto", "true" → True (bool), "false" → False (bool)
+        pano_mode: bool | str
+        if is_pano == "true":
+            pano_mode = True
+        elif is_pano == "false":
+            pano_mode = False
+        else:
+            pano_mode = "auto"
 
         if image is None:
             world_prompt = make_text_prompt(prompt)
@@ -193,7 +203,7 @@ class MarbleGenerateWorld:
                 _tensor_to_png_b64(image),
                 extension="png",
                 text=prompt or None,
-                is_pano=is_pano,
+                is_pano=pano_mode,
             )
         else:
             count = image.shape[0]
