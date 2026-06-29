@@ -108,7 +108,7 @@ class MarbleGenerateWorld:
                 "model": (
                     MARBLE_MODELS,
                     {
-                        "default": "marble-1.0",
+                        "default": "marble-1.1",
                         "tooltip": "Marble model variant. '-draft' is fastest and cheapest; '-plus' adds dynamic world sizing.",
                     },
                 ),
