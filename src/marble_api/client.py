@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import os
 import time
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 
 import requests
 
@@ -86,7 +86,7 @@ def make_image_prompt(
     data_base64: str,
     extension: str = "png",
     text: str | None = None,
-    is_pano: bool = False,
+    is_pano: Literal["auto"] | bool = "auto",
 ) -> dict[str, Any]:
     """Build an image WorldPrompt body using base64-encoded image content."""
     prompt: dict[str, Any] = {
@@ -217,10 +217,6 @@ class MarbleClient:
 
     # --- Endpoints -------------------------------------------------------
 
-    def health_check(self) -> dict[str, Any]:
-        """GET /healthz"""
-        return self._request("GET", "/healthz")
-
     def get_credits(self) -> dict[str, Any]:
         """GET /marble/v1/credits"""
         return self._request("GET", "/marble/v1/credits")
@@ -228,7 +224,7 @@ class MarbleClient:
     def generate_world(
         self,
         world_prompt: dict[str, Any],
-        model: str = "marble-1.0",
+        model: str = "marble-1.1",
         seed: int | None = None,
         display_name: str | None = None,
         tags: list[str] | None = None,
