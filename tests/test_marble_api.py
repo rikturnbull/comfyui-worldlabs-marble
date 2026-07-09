@@ -343,6 +343,46 @@ def test_delete_world_returns_empty_dict_for_no_content():
 
 
 @responses.activate
+def test_export_world_minimal():
+    responses.post(
+        f"{MARBLE_BASE_URL}/marble/v1/worlds/world1:export",
+        json={
+            "operation_id": "op1",
+            "done": True,
+            "response": {"asset_type": "splats", "format": "ply", "url": "https://example.com/asset.ply"},
+        },
+    )
+    c = MarbleClient(api_key="k")
+    op = c.export_world("world1", asset_type="splats", format="ply")
+    assert op["operation_id"] == "op1"
+    sent = json.loads(responses.calls[0].request.body)
+    assert sent == {"asset_type": "splats", "format": "ply"}
+    assert responses.calls[0].request.headers["WLT-Api-Key"] == "k"
+
+
+@responses.activate
+def test_export_world_with_optional_fields():
+    responses.post(
+        f"{MARBLE_BASE_URL}/marble/v1/worlds/world1:export",
+        json={"operation_id": "op2", "done": False},
+    )
+    MarbleClient(api_key="k").export_world(
+        "world1",
+        asset_type="mesh",
+        format="glb",
+        mesh_variant="vertex_colored",
+        resolution="500k",
+    )
+    sent = json.loads(responses.calls[0].request.body)
+    assert sent == {
+        "asset_type": "mesh",
+        "format": "glb",
+        "mesh_variant": "vertex_colored",
+        "resolution": "500k",
+    }
+
+
+@responses.activate
 def test_list_worlds_minimal():
     responses.post(
         f"{MARBLE_BASE_URL}/marble/v1/worlds:list",
