@@ -343,6 +343,57 @@ def test_delete_world_returns_empty_dict_for_no_content():
 
 
 @responses.activate
+def test_export_world_splat_sync():
+    responses.post(
+        f"{MARBLE_BASE_URL}/marble/v1/worlds/w1:export",
+        json={
+            "operation_id": "op-exp",
+            "done": True,
+            "response": {"asset_type": "splats", "format": "ply", "url": "https://example.com/out.ply"},
+        },
+    )
+    op = MarbleClient(api_key="k").export_world("w1", asset_type="splats", format="ply")
+    assert op["done"] is True
+    assert op["response"]["url"] == "https://example.com/out.ply"
+    sent = json.loads(responses.calls[0].request.body)
+    assert sent == {"asset_type": "splats", "format": "ply"}
+
+
+@responses.activate
+def test_export_world_mesh_async():
+    responses.post(
+        f"{MARBLE_BASE_URL}/marble/v1/worlds/w2:export",
+        json={"operation_id": "op-mesh", "done": False},
+    )
+    op = MarbleClient(api_key="k").export_world(
+        "w2",
+        asset_type="mesh",
+        format="glb",
+        mesh_variant="textured",
+    )
+    assert op["done"] is False
+    sent = json.loads(responses.calls[0].request.body)
+    assert sent == {"asset_type": "mesh", "format": "glb", "mesh_variant": "textured"}
+
+
+@responses.activate
+def test_export_world_splat_with_resolution():
+    responses.post(
+        f"{MARBLE_BASE_URL}/marble/v1/worlds/w3:export",
+        json={"operation_id": "op-res", "done": True},
+    )
+    MarbleClient(api_key="k").export_world(
+        "w3",
+        asset_type="splats",
+        format="ply",
+        resolution="500k",
+    )
+    sent = json.loads(responses.calls[0].request.body)
+    assert sent["resolution"] == "500k"
+    assert "mesh_variant" not in sent
+
+
+@responses.activate
 def test_list_worlds_minimal():
     responses.post(
         f"{MARBLE_BASE_URL}/marble/v1/worlds:list",
