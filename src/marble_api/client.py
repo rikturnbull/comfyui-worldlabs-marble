@@ -304,6 +304,26 @@ class MarbleClient:
         """DELETE /marble/v1/worlds/{world_id}"""
         return self._request("DELETE", f"/marble/v1/worlds/{world_id}")
 
+    def export_world(
+        self,
+        world_id: str,
+        asset_type: Literal["splats", "mesh"],
+        format: Literal["ply", "glb"],
+        mesh_variant: Literal["textured", "vertex_colored"] | None = None,
+        resolution: Literal["full_res", "500k", "150k", "100k"] | None = None,
+    ) -> dict[str, Any]:
+        """POST /marble/v1/worlds/{world_id}:export. Returns an ExportWorldResponse.
+
+        PLY splat exports complete synchronously (done=true on first response).
+        HQ mesh exports are asynchronous — poll with get_operation/wait_for_operation.
+        """
+        body: dict[str, Any] = {"asset_type": asset_type, "format": format}
+        if mesh_variant is not None:
+            body["mesh_variant"] = mesh_variant
+        if resolution is not None:
+            body["resolution"] = resolution
+        return self._request("POST", f"/marble/v1/worlds/{world_id}:export", body)
+
     def list_worlds(
         self,
         page_size: int = 20,
