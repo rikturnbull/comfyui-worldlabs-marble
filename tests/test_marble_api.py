@@ -379,6 +379,36 @@ def test_list_worlds_passes_filters():
     assert sent["sort_by"] == "updated_at"
 
 
+@responses.activate
+def test_export_world_minimal():
+    responses.post(
+        f"{MARBLE_BASE_URL}/marble/v1/worlds/w1:export",
+        json={
+            "operation_id": "op-export",
+            "done": True,
+            "response": {"asset_type": "splats", "format": "ply", "url": "https://cdn.example/out.ply"},
+        },
+    )
+    result = MarbleClient(api_key="k").export_world("w1", asset_type="splats", format="ply")
+    assert result["operation_id"] == "op-export"
+    sent = json.loads(responses.calls[0].request.body)
+    assert sent == {"asset_type": "splats", "format": "ply"}
+
+
+@responses.activate
+def test_export_world_with_optional_fields():
+    responses.post(
+        f"{MARBLE_BASE_URL}/marble/v1/worlds/w2:export",
+        json={"operation_id": "op-mesh", "done": False},
+    )
+    MarbleClient(api_key="k").export_world("w2", asset_type="mesh", format="glb", mesh_variant="textured", resolution="500k")
+    sent = json.loads(responses.calls[0].request.body)
+    assert sent["asset_type"] == "mesh"
+    assert sent["format"] == "glb"
+    assert sent["mesh_variant"] == "textured"
+    assert sent["resolution"] == "500k"
+
+
 # ---------------------------------------------------------------------------
 # Error handling
 # ---------------------------------------------------------------------------
