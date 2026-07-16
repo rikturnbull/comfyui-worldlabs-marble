@@ -170,6 +170,226 @@
         "title": "DepthPanoPrompt",
         "type": "object"
       },
+      "ExportWorldRequest": {
+        "description": "Request to export a generated world asset.",
+        "properties": {
+          "asset_type": {
+            "description": "Asset family to export: 'splats' or 'mesh'.",
+            "enum": [
+              "splats",
+              "mesh"
+            ],
+            "title": "Asset Type",
+            "type": "string"
+          },
+          "format": {
+            "description": "Requested export format.",
+            "enum": [
+              "ply",
+              "glb"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "mesh_variant": {
+            "default": "textured",
+            "description": "Mesh variant to return when an HQ mesh already exists.",
+            "enum": [
+              "textured",
+              "vertex_colored"
+            ],
+            "title": "Mesh Variant",
+            "type": "string"
+          },
+          "resolution": {
+            "default": "full_res",
+            "description": "Splat resolution to convert when exporting splats as PLY.",
+            "enum": [
+              "full_res",
+              "500k",
+              "150k",
+              "100k"
+            ],
+            "title": "Resolution",
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_type",
+          "format"
+        ],
+        "title": "ExportWorldRequest",
+        "type": "object"
+      },
+      "ExportWorldResponse": {
+        "description": "Response from world export endpoint.",
+        "properties": {
+          "cost": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OperationCost"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Settled credit cost for the operation. Populated only on successful completion."
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Creation timestamp",
+            "title": "Created At"
+          },
+          "done": {
+            "description": "True if the operation is completed",
+            "title": "Done",
+            "type": "boolean"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OperationError"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Error information if the operation failed"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Expiration timestamp",
+            "title": "Expires At"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Service-specific metadata, such as progress percentage",
+            "title": "Metadata"
+          },
+          "operation_id": {
+            "description": "Operation identifier",
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "response": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExportWorldResult"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Result payload when done=true and no error. Structure depends on operation type."
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last update timestamp",
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "operation_id",
+          "done"
+        ],
+        "title": "ExportWorldResponse",
+        "type": "object"
+      },
+      "ExportWorldResult": {
+        "description": "Downloadable exported world asset.",
+        "properties": {
+          "asset_type": {
+            "description": "Exported asset family",
+            "enum": [
+              "splats",
+              "mesh"
+            ],
+            "title": "Asset Type",
+            "type": "string"
+          },
+          "format": {
+            "description": "Exported file format",
+            "enum": [
+              "ply",
+              "glb"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "mesh_variant": {
+            "anyOf": [
+              {
+                "enum": [
+                  "textured",
+                  "vertex_colored"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Mesh variant returned for this export, if applicable",
+            "title": "Mesh Variant"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Splat resolution used for this export, if applicable",
+            "title": "Resolution"
+          },
+          "url": {
+            "description": "Download URL for the exported asset",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset_type",
+          "format",
+          "url"
+        ],
+        "title": "ExportWorldResult",
+        "type": "object"
+      },
       "GenerateWorldResponse": {
         "description": "Response from world generation endpoint.",
         "properties": {
@@ -275,7 +495,7 @@
         "title": "GenerateWorldResponse",
         "type": "object"
       },
-      "GetOperationResponse_Union_World__PanoDepthToRgbResult__": {
+      "GetOperationResponse_Union_World__PanoDepthToRgbResult__ExportWorldResult__": {
         "properties": {
           "cost": {
             "anyOf": [
@@ -357,6 +577,9 @@
                 "$ref": "#/components/schemas/PanoDepthToRgbResult"
               },
               {
+                "$ref": "#/components/schemas/ExportWorldResult"
+              },
+              {
                 "type": "null"
               }
             ],
@@ -381,7 +604,7 @@
           "operation_id",
           "done"
         ],
-        "title": "GetOperationResponse[Union[World, PanoDepthToRgbResult]]",
+        "title": "GetOperationResponse[Union[World, PanoDepthToRgbResult, ExportWorldResult]]",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -915,6 +1138,30 @@
             ],
             "description": "Collider mesh URL",
             "title": "Collider Mesh Url"
+          },
+          "full_res_mesh_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Full-resolution vertex-colored mesh URL",
+            "title": "Full Res Mesh Url"
+          },
+          "hq_mesh_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "High-quality textured mesh URL",
+            "title": "Hq Mesh Url"
           }
         },
         "title": "MeshAssets",
@@ -2350,7 +2597,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetOperationResponse_Union_World__PanoDepthToRgbResult__"
+                  "$ref": "#/components/schemas/GetOperationResponse_Union_World__PanoDepthToRgbResult__ExportWorldResult__"
                 }
               }
             },
@@ -2495,6 +2742,66 @@
           }
         },
         "summary": "Get World"
+      }
+    },
+    "/marble/v1/worlds/{world_id}:export": {
+      "post": {
+        "description": "Export a generated world asset.\n\nPLY splat exports are converted synchronously, cached in GCS, and returned\nas completed operations. HQ mesh exports reuse the existing async mesh\nexport service and return an in-progress operation.",
+        "operationId": "export_world_marble_v1_worlds__world_id__export_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "world_id",
+            "required": true,
+            "schema": {
+              "title": "World Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportWorldRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportWorldResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "402": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Insufficient API credits to start this request. Add credits or enable auto-refill at https://platform.worldlabs.ai/billing."
+                }
+              }
+            },
+            "description": "The account has insufficient API credits for this request."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export World"
       }
     },
     "/marble/v1/worlds:generate": {
