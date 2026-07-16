@@ -499,7 +499,11 @@ def test_wait_for_operation_honors_check_interrupt(monkeypatch):
 def test_export_world_minimal_body():
     responses.post(
         f"{MARBLE_BASE_URL}/marble/v1/worlds/w1:export",
-        json={"operation_id": "op2", "done": True, "response": {"asset_type": "splats", "format": "ply", "url": "https://example.com/out.ply"}},
+        json={
+            "operation_id": "op2",
+            "done": True,
+            "response": {"asset_type": "splats", "format": "ply", "url": "https://example.com/out.ply"},
+        },
     )
     op = MarbleClient(api_key="k").export_world("w1", asset_type="splats", format="ply")
     assert op["operation_id"] == "op2"
