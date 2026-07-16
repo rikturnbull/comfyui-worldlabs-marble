@@ -496,6 +496,52 @@ def test_wait_for_operation_honors_check_interrupt(monkeypatch):
 
 
 @responses.activate
+def test_export_world_minimal_body():
+    responses.post(
+        f"{MARBLE_BASE_URL}/marble/v1/worlds/w1:export",
+        json={"operation_id": "op2", "done": True, "response": {"asset_type": "splats", "format": "ply", "url": "https://example.com/out.ply"}},
+    )
+    op = MarbleClient(api_key="k").export_world("w1", asset_type="splats", format="ply")
+    assert op["operation_id"] == "op2"
+    sent = json.loads(responses.calls[0].request.body)
+    assert sent == {"asset_type": "splats", "format": "ply"}
+
+
+@responses.activate
+def test_export_world_includes_optional_fields():
+    responses.post(
+        f"{MARBLE_BASE_URL}/marble/v1/worlds/w2:export",
+        json={"operation_id": "op3", "done": False},
+    )
+    MarbleClient(api_key="k").export_world(
+        "w2",
+        asset_type="mesh",
+        format="glb",
+        mesh_variant="vertex_colored",
+        resolution="500k",
+    )
+    sent = json.loads(responses.calls[0].request.body)
+    assert sent == {
+        "asset_type": "mesh",
+        "format": "glb",
+        "mesh_variant": "vertex_colored",
+        "resolution": "500k",
+    }
+
+
+@responses.activate
+def test_export_world_omits_none_optional_fields():
+    responses.post(
+        f"{MARBLE_BASE_URL}/marble/v1/worlds/w3:export",
+        json={"operation_id": "op4", "done": True},
+    )
+    MarbleClient(api_key="k").export_world("w3", asset_type="splats", format="ply", mesh_variant=None, resolution=None)
+    sent = json.loads(responses.calls[0].request.body)
+    assert "mesh_variant" not in sent
+    assert "resolution" not in sent
+
+
+@responses.activate
 def test_wait_for_operation_check_interrupt_after_sleep(monkeypatch):
     """The time.sleep() branch inside interruptible_sleep must be reachable.
 

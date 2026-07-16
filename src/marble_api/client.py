@@ -304,6 +304,22 @@ class MarbleClient:
         """DELETE /marble/v1/worlds/{world_id}"""
         return self._request("DELETE", f"/marble/v1/worlds/{world_id}")
 
+    def export_world(
+        self,
+        world_id: str,
+        asset_type: str,
+        format: str,
+        mesh_variant: str | None = None,
+        resolution: str | None = None,
+    ) -> dict[str, Any]:
+        """POST /marble/v1/worlds/{world_id}:export. Returns an ExportWorldResponse."""
+        body: dict[str, Any] = {"asset_type": asset_type, "format": format}
+        if mesh_variant is not None:
+            body["mesh_variant"] = mesh_variant
+        if resolution is not None:
+            body["resolution"] = resolution
+        return self._request("POST", f"/marble/v1/worlds/{world_id}:export", body)
+
     def list_worlds(
         self,
         page_size: int = 20,
